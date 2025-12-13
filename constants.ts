@@ -14,12 +14,14 @@ export const HEAVY_NOISE_SVG_URL = `data:image/svg+xml,%3Csvg viewBox='0 0 200 2
 
 // Aggression levels based on night number (1-5)
 export const getAggression = (night: number) => {
-  switch(night) {
-      case 1: return { blue: 2, red: 1 };
-      case 2: return { blue: 6, red: 4 };
-      case 3: return { blue: 8, red: 8 };
-      case 4: return { blue: 12, red: 10 };
-      case 5: return { blue: 16, red: 15 };
-      default: return { blue: 20, red: 20 };
+  switch (night) {
+    case 1: return { blue: 2, red: 1 };
+    case 2: return { blue: 6, red: 4 };
+    case 3: return { blue: 8, red: 8 };
+    case 4: return { blue: 12, red: 10 };
+    case 5: return { blue: 16, red: 15 };
+    case 6: return { blue: 18, red: 18 };
+    case 7: return { blue: 20, red: 20 };
+    default: return { blue: 20, red: 20 };
   }
 };
