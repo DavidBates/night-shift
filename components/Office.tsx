@@ -130,15 +130,13 @@ export const Office: React.FC<OfficeProps> = ({
                     {/* Buttons */}
                     <div className="z-30 flex flex-col gap-6 bg-slate-800 p-3 rounded-xl border border-slate-700 shadow-2xl scale-75 md:scale-110">
                         <button
-                            onMouseDown={() => toggleDoor('left')}
-                            onTouchStart={(e) => { e.stopPropagation(); toggleDoor('left'); }}
+                            onPointerDown={(e) => { e.preventDefault(); toggleDoor('left'); }}
                             className={`w-20 h-20 rounded-full flex items-center justify-center border-4 transition-all active:scale-95 ${leftDoorClosed ? 'bg-red-900 border-red-500 text-red-100' : 'bg-green-900 border-green-600 text-green-100'}`}
                         >
                             {leftDoorClosed ? <Lock size={32} /> : <Unlock size={32} />}
                         </button>
                         <button
-                            onMouseDown={() => toggleLight('left')}
-                            onTouchStart={(e) => { e.stopPropagation(); toggleLight('left'); }}
+                            onPointerDown={(e) => { e.preventDefault(); toggleLight('left'); }}
                             className={`w-20 h-20 rounded-full flex items-center justify-center border-4 transition-all active:scale-95 ${leftLightOn ? 'bg-yellow-200 border-white text-yellow-900 shadow-[0_0_20px_yellow]' : 'bg-slate-700 border-slate-500 text-slate-400'}`}
                         >
                             <Lightbulb size={32} />
@@ -167,8 +165,13 @@ export const Office: React.FC<OfficeProps> = ({
                         {/* Desk Texture Gradient */}
                         <div className="absolute inset-0 rounded-t-[40px] md:rounded-t-[150px] bg-gradient-to-b from-slate-700/50 to-slate-900/80 pointer-events-none"></div>
 
-                        <div className="absolute -top-24 md:-top-64 left-8 md:left-1/4 w-20 md:w-32 h-32 md:h-48 bg-slate-900/50 rotate-[-5deg] border border-slate-700/30 flex items-center justify-center backdrop-blur-sm">
-                            <span className="text-slate-800 text-xl md:text-4xl font-black opacity-40">CELEBRATE!</span>
+                        {/* Poster on Wall (Replaces Celebrate) */}
+                        <div className="absolute -top-48 md:-top-80 left-1/4 w-32 md:w-48 h-48 md:h-72 rotate-[-5deg] flex items-center justify-center transition-opacity duration-300" style={{ opacity: flashlightOn ? 0.9 : 0.05 }}>
+                            <img
+                                src="./media/fnaf_celebrate.png"
+                                alt="Celebrate Poster"
+                                className="w-full h-full object-contain drop-shadow-2xl"
+                            />
                         </div>
 
                         <div className="absolute -top-8 md:-top-12 left-28 md:left-32 w-24 md:w-40 h-16 md:h-32 bg-slate-900 rounded-lg transform -skew-x-12 border border-slate-600 flex items-center justify-center shadow-lg">
@@ -180,8 +183,7 @@ export const Office: React.FC<OfficeProps> = ({
                         {/* Fidget: Flashlight */}
                         <div
                             className="absolute -top-6 md:-top-12 right-24 md:right-1/3 cursor-pointer group transform rotate-12 active:scale-95 transition-transform z-20"
-                            onMouseDown={toggleFlashlight}
-                            onTouchStart={toggleFlashlight}
+                            onPointerDown={toggleFlashlight}
                         >
                             <div className={`w-24 md:w-32 h-6 md:h-8 rounded-full shadow-lg flex items-center border border-slate-900 ${flashlightOn ? 'bg-slate-600' : 'bg-slate-700'}`}>
                                 <div className={`w-6 md:w-8 h-6 md:h-8 rounded-full border-2 border-slate-600 ${flashlightOn ? 'bg-yellow-200 shadow-[0_0_15px_yellow]' : 'bg-slate-800'}`}></div>
@@ -193,8 +195,7 @@ export const Office: React.FC<OfficeProps> = ({
                         {/* Fidget: Keys */}
                         <div
                             className={`absolute bottom-16 md:bottom-32 right-8 md:right-1/4 cursor-pointer p-4 group transition-transform z-20 ${keysJiggling ? 'animate-bounce' : 'hover:scale-105'}`}
-                            onMouseDown={jiggleKeys}
-                            onTouchStart={jiggleKeys}
+                            onPointerDown={jiggleKeys}
                         >
                             <div className="relative">
                                 <KeyRound className="text-yellow-600 w-10 md:w-12 h-10 md:h-12 transform -rotate-45 drop-shadow-lg" strokeWidth={1.5} />
@@ -232,15 +233,13 @@ export const Office: React.FC<OfficeProps> = ({
                     {/* Buttons */}
                     <div className="z-30 flex flex-col gap-6 bg-slate-800 p-3 rounded-xl border border-slate-700 shadow-2xl scale-75 md:scale-110">
                         <button
-                            onMouseDown={() => toggleDoor('right')}
-                            onTouchStart={(e) => { e.stopPropagation(); toggleDoor('right'); }}
+                            onPointerDown={(e) => { e.preventDefault(); toggleDoor('right'); }}
                             className={`w-20 h-20 rounded-full flex items-center justify-center border-4 transition-all active:scale-95 ${rightDoorClosed ? 'bg-red-900 border-red-500 text-red-100' : 'bg-green-900 border-green-600 text-green-100'}`}
                         >
                             {rightDoorClosed ? <Lock size={32} /> : <Unlock size={32} />}
                         </button>
                         <button
-                            onMouseDown={() => toggleLight('right')}
-                            onTouchStart={(e) => { e.stopPropagation(); toggleLight('right'); }}
+                            onPointerDown={(e) => { e.preventDefault(); toggleLight('right'); }}
                             className={`w-20 h-20 rounded-full flex items-center justify-center border-4 transition-all active:scale-95 ${rightLightOn ? 'bg-yellow-200 border-white text-yellow-900 shadow-[0_0_20px_yellow]' : 'bg-slate-700 border-slate-500 text-slate-400'}`}
                         >
                             <Lightbulb size={32} />
@@ -253,15 +252,13 @@ export const Office: React.FC<OfficeProps> = ({
             <div className="absolute inset-0 pointer-events-none flex justify-between z-40 md:hidden">
                 <button
                     className="w-16 h-24 bg-slate-800/50 border-r-2 border-slate-600 rounded-r-xl pointer-events-auto flex items-center justify-center opacity-50 active:opacity-80 active:bg-slate-700 mt-auto mb-32 backdrop-blur-sm"
-                    onTouchStart={(e) => { e.stopPropagation(); setPanTarget(0); }}
-                    onMouseDown={(e) => { e.stopPropagation(); setPanTarget(0); }}
+                    onPointerDown={(e) => { e.stopPropagation(); e.preventDefault(); setPanTarget(0); }}
                 >
                     <ChevronLeft className="text-white w-8 h-8" />
                 </button>
                 <button
                     className="w-16 h-24 bg-slate-800/50 border-l-2 border-slate-600 rounded-l-xl pointer-events-auto flex items-center justify-center opacity-50 active:opacity-80 active:bg-slate-700 mt-auto mb-32 backdrop-blur-sm"
-                    onTouchStart={(e) => { e.stopPropagation(); setPanTarget(1); }}
-                    onMouseDown={(e) => { e.stopPropagation(); setPanTarget(1); }}
+                    onPointerDown={(e) => { e.stopPropagation(); e.preventDefault(); setPanTarget(1); }}
                 >
                     <ChevronRight className="text-white w-8 h-8" />
                 </button>
