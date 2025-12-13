@@ -64,6 +64,13 @@ export const Office: React.FC<OfficeProps> = ({
         }
     };
 
+    // React to mobile pan target changes
+    useEffect(() => {
+        if (panTarget !== null) {
+            updatePan(panTarget);
+        }
+    }, [panTarget]);
+
     // Touch Logic (Swipe)
     const touchStart = useRef<number | null>(null);
 
