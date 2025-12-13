@@ -1,0 +1,5 @@
+{
+  "name": "Night Shift",
+  "description": "A survival horror game where you must survive 5 nights at a facility by managing power, cameras, and security doors to keep animatronics at bay.",
+  "requestFramePermissions": []
+}
