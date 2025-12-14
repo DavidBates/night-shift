@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StaticOverlay } from './StaticOverlay';
 import { AnimatronicName, GameSettings } from '../types';
 import { DEFAULT_SETTINGS } from '../constants';
@@ -174,31 +174,46 @@ export const WinScreen: React.FC<{
     night: number;
     onNextNight: () => void;
     onMenu: () => void;
-}> = ({ night, onNextNight, onMenu }) => (
-    <div className="h-screen w-full bg-black flex flex-col items-center justify-center text-center font-mono space-y-4 animate-in fade-in duration-500">
-        <h1 className="text-8xl font-bold text-white mb-4 animate-bounce">6:00 AM</h1>
-        <p className="text-green-400 text-3xl mb-8">SHIFT COMPLETE</p>
+}> = ({ night, onNextNight, onMenu }) => {
+    useEffect(() => {
+        const file = Math.random() < 0.5 ? '1.mp3' : '2.mp3';
+        const audio = new Audio(`./media/${file}`);
+        audio.loop = true;
+        audio.volume = 0.5;
+        audio.play().catch(e => console.error("Audio play failed:", e));
 
-        {night < 7 ? (
-            <>
-                <p className="text-slate-500 mb-8">Preparing Night {night + 1}...</p>
+        return () => {
+            audio.pause();
+            audio.currentTime = 0;
+        };
+    }, []);
+
+    return (
+        <div className="h-screen w-full bg-black flex flex-col items-center justify-center text-center font-mono space-y-4 animate-in fade-in duration-500">
+            <h1 className="text-8xl font-bold text-white mb-4 animate-bounce">6:00 AM</h1>
+            <p className="text-green-400 text-3xl mb-8">SHIFT COMPLETE</p>
+
+            {night < 7 ? (
+                <>
+                    <p className="text-slate-500 mb-8">Preparing Night {night + 1}...</p>
+                    <button
+                        onClick={onNextNight}
+                        className="px-8 py-3 bg-white text-black font-bold text-xl hover:scale-110 transition-transform"
+                    >
+                        START NIGHT {night + 1}
+                    </button>
+                </>
+            ) : (
                 <button
-                    onClick={onNextNight}
-                    className="px-8 py-3 bg-white text-black font-bold text-xl hover:scale-110 transition-transform"
+                    onClick={onMenu}
+                    className="px-8 py-3 border border-white text-white font-bold text-xl hover:bg-white hover:text-black transition-colors"
                 >
-                    START NIGHT {night + 1}
+                    RETURN TO MENU
                 </button>
-            </>
-        ) : (
-            <button
-                onClick={onMenu}
-                className="px-8 py-3 border border-white text-white font-bold text-xl hover:bg-white hover:text-black transition-colors"
-            >
-                RETURN TO MENU
-            </button>
-        )}
-    </div>
-);
+            )}
+        </div>
+    );
+};
 
 export const EndingScreen: React.FC<{
     onReturn: () => void;
