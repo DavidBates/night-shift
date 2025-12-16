@@ -7,6 +7,13 @@ import { Office } from './components/Office';
 import { CameraSystem } from './components/CameraSystem';
 import { StartScreen, CustomSetupScreen, NightIntro, Jumpscare, WinScreen, EndingScreen } from './components/Screens';
 
+// Google Analytics helper function
+const trackEvent = (eventName: string, eventParams?: Record<string, any>) => {
+    if (typeof window !== 'undefined' && (window as any).gtag) {
+        (window as any).gtag('event', eventName, eventParams);
+    }
+};
+
 const NightShift = () => {
     // --- Game State ---
     const [view, setView] = useState<ViewType>('start');
@@ -359,6 +366,11 @@ const NightShift = () => {
     const handleWin = () => {
         toggleAmbience(false);
         toggleStaticSound(false);
+        // Track night success event
+        trackEvent('night_success', {
+            night: gameSettings.night,
+            night_type: gameSettings.night === 6 ? 'custom' : 'standard',
+        });
         if (gameSettings.night < 5) {
             setView('win');
         } else {
@@ -444,6 +456,13 @@ const NightShift = () => {
                                 toggleAmbience(false);
                                 toggleStaticSound(false);
                                 playSound('scare');
+                                // Track night failure event
+                                trackEvent('night_failure', {
+                                    night: gameSettings.night,
+                                    night_type: gameSettings.night === 6 ? 'custom' : 'standard',
+                                    cause: 'door_attack',
+                                    animatronic: key,
+                                });
                             } else {
                                 // BLOCKED -> RETREAT
                                 enemy.location = path[0]; // Back to stage
@@ -530,6 +549,13 @@ const NightShift = () => {
                     setView('jumpscare');
                     toggleAmbience(false);
                     playSound('scare');
+                    // Track night failure event
+                    trackEvent('night_failure', {
+                        night: gameSettings.night,
+                        night_type: gameSettings.night === 6 ? 'custom' : 'standard',
+                        cause: 'power_outage',
+                        animatronic: 'blue',
+                    });
                 }
             }
 
