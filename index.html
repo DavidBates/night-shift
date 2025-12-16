@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
+    <title>Night Shift</title>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-BKLPCNT3SN"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-BKLPCNT3SN');
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+        background-color: black;
+      }
+      .glitch-text {
+        position: relative;
+        animation: glitch 1s linear infinite;
+      }
+      @keyframes glitch {
+        2%, 64% { transform: translate(2px,0) skew(0deg); }
+        4%, 60% { transform: translate(-2px,0) skew(0deg); }
+        62% { transform: translate(0,0) skew(5deg); }
+      }
+    </style>
+  <script type="module" crossorigin src="/assets/index-CrzSV7DD.js"></script>
+</head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
