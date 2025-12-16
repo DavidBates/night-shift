@@ -8,9 +8,17 @@ import { CameraSystem } from './components/CameraSystem';
 import { StartScreen, CustomSetupScreen, NightIntro, Jumpscare, WinScreen, EndingScreen } from './components/Screens';
 
 // Google Analytics helper function
+// Declare gtag function type for TypeScript
+declare global {
+    interface Window {
+        gtag?: (...args: any[]) => void;
+        dataLayer?: any[];
+    }
+}
+
 const trackEvent = (eventName: string, eventParams?: Record<string, any>) => {
-    if (typeof window !== 'undefined' && (window as any).gtag) {
-        (window as any).gtag('event', eventName, eventParams);
+    if (typeof window !== 'undefined' && window.gtag) {
+        window.gtag('event', eventName, eventParams);
     }
 };
 
