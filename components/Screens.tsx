@@ -42,23 +42,45 @@ export const CustomSetupScreen: React.FC<{
 }> = ({ onStart, onBack }) => {
     const [settings, setSettings] = useState<GameSettings>({
         ...DEFAULT_SETTINGS,
-        night: 6 // Custom night identifier
+        night: 6, // Custom night identifier
+        isNightmareMode: false
     });
 
-    const handleChange = (key: keyof GameSettings, value: number) => {
+    const handleChange = (key: keyof GameSettings, value: number | boolean) => {
         setSettings(prev => ({ ...prev, [key]: value }));
     };
 
     return (
         <div className="h-screen w-full bg-black flex flex-col items-center justify-center relative overflow-y-auto font-mono text-slate-200 p-4">
             <StaticOverlay />
-            <div className="z-10 w-full max-w-2xl bg-slate-900/80 border border-slate-700 p-8 rounded-xl shadow-2xl backdrop-blur-md animate-in slide-in-from-bottom-10 fade-in duration-500">
-                <div className="flex items-center justify-between mb-8 border-b border-slate-700 pb-4">
-                    <h2 className="text-3xl font-bold text-yellow-500">CUSTOM NIGHT CONFIG</h2>
+            <div className={`z-10 w-full max-w-2xl border p-8 rounded-xl shadow-2xl backdrop-blur-md transition-colors duration-500 animate-in slide-in-from-bottom-10 fade-in
+                ${settings.isNightmareMode ? 'bg-red-950/80 border-red-700' : 'bg-slate-900/80 border-slate-700'}`}>
+
+                <div className={`flex items-center justify-between mb-6 border-b pb-4 ${settings.isNightmareMode ? 'border-red-800' : 'border-slate-700'}`}>
+                    <h2 className={`text-3xl font-bold ${settings.isNightmareMode ? 'text-red-500 animate-pulse' : 'text-yellow-500'}`}>
+                        {settings.isNightmareMode ? 'NIGHTMARE CAMPAIGN' : 'CUSTOM NIGHT CONFIG'}
+                    </h2>
                     <button onClick={onBack} className="p-2 hover:bg-slate-800 rounded-full transition-colors"><ArrowLeft /></button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                {/* Nightmare Toggle */}
+                <div className="mb-8 p-4 border border-red-900/50 bg-black/50 rounded flex items-center justify-between">
+                    <div>
+                        <h3 className="text-xl font-bold text-red-500 mb-1">NIGHTMARE MODE</h3>
+                        <p className="text-sm text-red-400/70">A grueling 7-night challenge. AI levels are preset.</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                            type="checkbox"
+                            className="sr-only peer"
+                            checked={!!settings.isNightmareMode}
+                            onChange={(e) => handleChange('isNightmareMode', e.target.checked)}
+                        />
+                        <div className="w-14 h-7 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-red-600"></div>
+                    </label>
+                </div>
+
+                <div className={`grid grid-cols-1 md:grid-cols-2 gap-8 mb-8 transition-opacity duration-300 ${settings.isNightmareMode ? 'opacity-30 pointer-events-none' : 'opacity-100'}`}>
                     {/* Animatronics */}
                     <div className="space-y-6">
                         <h3 className="text-xl font-bold text-slate-400 border-b border-slate-700 pb-2">AI LEVELS (0-20)</h3>
@@ -125,10 +147,102 @@ export const CustomSetupScreen: React.FC<{
 
                 <button
                     onClick={() => onStart(settings)}
-                    className="w-full py-4 bg-slate-100 hover:bg-white text-black font-black text-2xl tracking-widest rounded flex items-center justify-center gap-3 transition-transform active:scale-95"
+                    className={`w-full py-4 font-black text-2xl tracking-widest rounded flex items-center justify-center gap-3 transition-transform active:scale-95 ${settings.isNightmareMode
+                        ? 'bg-red-600 hover:bg-red-500 text-black'
+                        : 'bg-slate-100 hover:bg-white text-black'
+                        }`}
                 >
-                    <Play fill="black" /> START SHIFT
+                    <Play fill="black" />
+                    {settings.isNightmareMode ? 'BEGIN NIGHTMARE' : 'START SHIFT'}
                 </button>
+            </div>
+        </div>
+    );
+};
+
+export const KeypadScreen: React.FC<{ onSuccess: () => void }> = ({ onSuccess }) => {
+    const [input, setInput] = useState('');
+    const [status, setStatus] = useState<'idle' | 'error' | 'success'>('idle');
+
+    const handlePress = (num: string) => {
+        if (status !== 'idle') return;
+        if (input.length < 4) {
+            setInput(prev => prev + num);
+        }
+    };
+
+    const handleClear = () => {
+        if (status !== 'idle') return;
+        setInput('');
+    };
+
+    const handleSubmit = () => {
+        if (status !== 'idle') return;
+        if (input === '1987' || input === '1983') {
+            setStatus('success');
+            setTimeout(() => {
+                onSuccess();
+            }, 3000);
+        } else {
+            setStatus('error');
+            setTimeout(() => {
+                setInput('');
+                setStatus('idle');
+            }, 1000);
+        }
+    };
+
+    return (
+        <div className="h-screen w-full bg-black flex flex-col items-center justify-center relative font-mono text-slate-200">
+            <StaticOverlay />
+            <div className="z-10 bg-zinc-900 border-4 border-zinc-800 p-8 rounded-lg shadow-2xl flex flex-col items-center max-w-sm w-full animate-in zoom-in-95 duration-500">
+                <div className="w-full h-16 bg-blue-950/20 border-2 inset-2 border-zinc-700/50 mb-8 rounded flex items-center justify-end px-4 shadow-inner relative overflow-hidden">
+                    {/* LCD Scanline */}
+                    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-blue-400/5 to-transparent animate-scanline pointer-events-none"></div>
+
+                    <span className={`text-4xl font-bold tracking-widest ${status === 'error' ? 'text-red-500 animate-pulse' :
+                        status === 'success' ? 'text-green-500' : 'text-blue-400'
+                        }`} style={{ textShadow: '0 0 5px currentColor' }}>
+                        {status === 'error' ? 'ERR' : status === 'success' ? 'ULCK' : (input.padEnd(4, '_'))}
+                    </span>
+                </div>
+
+                <div className="grid grid-cols-3 gap-4 w-full">
+                    {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
+                        <button
+                            key={num}
+                            onClick={() => handlePress(num.toString())}
+                            className="h-16 bg-zinc-800 hover:bg-zinc-700 active:bg-zinc-900 border-b-4 border-black rounded text-2xl font-bold transition-all active:translate-y-1 active:border-b-0"
+                        >
+                            {num}
+                        </button>
+                    ))}
+                    <button
+                        onClick={handleClear}
+                        className="h-16 bg-red-900/50 hover:bg-red-800 active:bg-red-950 border-b-4 border-black rounded text-xl font-bold text-red-200 transition-all active:translate-y-1 active:border-b-0"
+                    >
+                        CLR
+                    </button>
+                    <button
+                        onClick={() => handlePress('0')}
+                        className="h-16 bg-zinc-800 hover:bg-zinc-700 active:bg-zinc-900 border-b-4 border-black rounded text-2xl font-bold transition-all active:translate-y-1 active:border-b-0"
+                    >
+                        0
+                    </button>
+                    <button
+                        onClick={handleSubmit}
+                        className="h-16 bg-green-900/50 hover:bg-green-800 active:bg-green-950 border-b-4 border-black rounded text-xl font-bold text-green-200 transition-all active:translate-y-1 active:border-b-0"
+                    >
+                        ENT
+                    </button>
+                </div>
+
+                <div className="mt-8 text-center">
+                    <p className="text-zinc-600 text-xs">MAINTENANCE OVERRIDE REQUIRED</p>
+                    {status === 'success' && (
+                        <p className="text-green-500 mt-2 animate-pulse text-sm">UNIT-03 (YELLOW) DISENGAGED</p>
+                    )}
+                </div>
             </div>
         </div>
     );
@@ -146,29 +260,48 @@ export const NightIntro: React.FC<{ night: number }> = ({ night }) => (
 export const Jumpscare: React.FC<{
     source: AnimatronicName | null;
     onGameOver: () => void;
-}> = ({ source, onGameOver }) => (
-    <div className="h-screen w-full bg-black flex items-center justify-center relative overflow-hidden z-50">
-        <div className={`absolute inset-0 ${source === 'blue' ? 'bg-blue-900' : 'bg-red-900'} animate-pulse duration-75`}></div>
-        <div className="z-10 relative w-full h-full flex items-center justify-center animate-bounce duration-75">
-            <div className={`w-[80vw] h-[80vw] max-w-[600px] max-h-[600px] ${source === 'blue' ? 'bg-blue-950' : 'bg-red-950'} rounded-full shadow-2xl flex flex-col items-center justify-center relative transform scale-125`}>
-                <div className="absolute top-[20%] w-full flex justify-center gap-8 md:gap-16">
-                    <div className="w-20 h-20 md:w-32 md:h-32 bg-black rounded-full border-4 md:border-8 border-white flex items-center justify-center overflow-hidden">
-                        <div className="w-4 h-4 md:w-6 md:h-6 bg-red-600 shadow-[0_0_25px_red] animate-ping"></div>
+}> = ({ source, onGameOver }) => {
+    // Determine colors based on source
+    let bgColor = 'bg-red-900';
+    let innerBgColor = 'bg-red-950';
+    let eyeColor = 'bg-red-600 shadow-[0_0_25px_red]';
+    let mouthColor = 'bg-red-900/50';
+
+    if (source === 'blue') {
+        bgColor = 'bg-blue-900';
+        innerBgColor = 'bg-blue-950';
+        eyeColor = 'bg-red-600 shadow-[0_0_25px_red]'; // Blue keeps red eyes usually
+    } else if (source === 'yellow') {
+        bgColor = 'bg-yellow-900';
+        innerBgColor = 'bg-yellow-950';
+        eyeColor = 'bg-white shadow-[0_0_25px_white]'; // Yellow has glowing white eyes
+        mouthColor = 'bg-yellow-900/50';
+    }
+
+    return (
+        <div className="h-screen w-full bg-black flex items-center justify-center relative overflow-hidden z-50">
+            <div className={`absolute inset-0 ${bgColor} animate-pulse duration-75`}></div>
+            <div className="z-10 relative w-full h-full flex items-center justify-center animate-bounce duration-75">
+                <div className={`w-[80vw] h-[80vw] max-w-[600px] max-h-[600px] ${innerBgColor} rounded-full shadow-2xl flex flex-col items-center justify-center relative transform scale-125`}>
+                    <div className="absolute top-[20%] w-full flex justify-center gap-8 md:gap-16">
+                        <div className="w-20 h-20 md:w-32 md:h-32 bg-black rounded-full border-4 md:border-8 border-white flex items-center justify-center overflow-hidden">
+                            <div className={`w-4 h-4 md:w-6 md:h-6 ${eyeColor} animate-ping`}></div>
+                        </div>
+                        <div className="w-20 h-20 md:w-32 md:h-32 bg-black rounded-full border-4 md:border-8 border-white flex items-center justify-center overflow-hidden">
+                            <div className={`w-4 h-4 md:w-6 md:h-6 ${eyeColor} animate-ping`}></div>
+                        </div>
                     </div>
-                    <div className="w-20 h-20 md:w-32 md:h-32 bg-black rounded-full border-4 md:border-8 border-white flex items-center justify-center overflow-hidden">
-                        <div className="w-4 h-4 md:w-6 md:h-6 bg-red-600 shadow-[0_0_25px_red] animate-ping"></div>
+                    <div className="absolute bottom-[20%] w-48 h-24 md:w-72 md:h-40 bg-black border-4 md:border-8 border-white rounded-b-[3rem] md:rounded-b-[4rem] overflow-hidden flex flex-col justify-center items-center">
+                        <div className={`w-full h-full ${mouthColor} animate-pulse`}></div>
                     </div>
-                </div>
-                <div className="absolute bottom-[20%] w-48 h-24 md:w-72 md:h-40 bg-black border-4 md:border-8 border-white rounded-b-[3rem] md:rounded-b-[4rem] overflow-hidden flex flex-col justify-center items-center">
-                    <div className="w-full h-full bg-red-900/50 animate-pulse"></div>
                 </div>
             </div>
+            <div className="absolute bottom-10 z-50">
+                <button onClick={onGameOver} className="text-white border px-4 py-2 hover:bg-white hover:text-black">GAME OVER</button>
+            </div>
         </div>
-        <div className="absolute bottom-10 z-50">
-            <button onClick={onGameOver} className="text-white border px-4 py-2 hover:bg-white hover:text-black">GAME OVER</button>
-        </div>
-    </div>
-);
+    );
+};
 
 export const WinScreen: React.FC<{
     night: number;

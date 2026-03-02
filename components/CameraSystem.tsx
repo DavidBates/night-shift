@@ -20,6 +20,7 @@ const RoomView: React.FC<{
   const units: string[] = [];
   if (animatronics.blue.location === id) units.push('blue');
   if (animatronics.red.location === id) units.push('red');
+  if (animatronics.yellow?.location === id) units.push('yellow');
 
   return (
     <div className="w-full h-full bg-black relative border-4 border-slate-800 overflow-hidden flex items-center justify-center">
@@ -45,6 +46,21 @@ const RoomView: React.FC<{
               <div className="w-3 h-3 bg-yellow-500 rounded-full shadow-[0_0_15px_yellow] animate-pulse delay-75"></div>
             </div>
             <div className="w-20 h-10 border-b-4 border-slate-800 rounded-full"></div>
+          </div>
+        </div>
+      )}
+      {units.includes('yellow') && (
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 animate-in fade-in duration-500 z-10">
+          <div className="w-40 h-72 bg-yellow-900/80 rounded-t-[3rem] shadow-[0_0_50px_rgba(255,215,0,0.2)] relative flex flex-col items-center pt-10 border-y border-yellow-700/50">
+            <div className="w-28 h-28 bg-black/80 rounded-full flex gap-6 items-center justify-center mb-4 border border-yellow-900/50">
+              <div className="w-4 h-4 bg-white rounded-full shadow-[0_0_20px_white] animate-ping"></div>
+              <div className="w-4 h-4 bg-white rounded-full shadow-[0_0_20px_white] animate-ping delay-100"></div>
+            </div>
+            <div className="w-24 h-12 bg-black/60 rounded-b-xl flex items-center justify-center gap-1 border-b border-white/20">
+              <div className="w-2 h-4 bg-white/50 rounded-sm"></div>
+              <div className="w-2 h-4 bg-white/50 rounded-sm"></div>
+              <div className="w-2 h-4 bg-white/50 rounded-sm"></div>
+            </div>
           </div>
         </div>
       )}

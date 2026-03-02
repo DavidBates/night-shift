@@ -234,9 +234,10 @@ export const Office: React.FC<OfficeProps> = ({
                     {/* Light Effect */}
                     <div className={`absolute left-[-100px] top-0 bottom-0 w-64 pointer-events-none transition-opacity duration-75 ${rightLightOn ? 'opacity-30 bg-yellow-100 mix-blend-overlay' : 'opacity-0'}`}></div>
 
-                    {/* ENEMY REVEAL */}
-                    {rightLightOn && animatronics.red.location === 7 && <AnimatronicAtDoor type="red" />}
-
+                    {/* Right Light Content (Red/Yellow Animatronic check) */}
+                    {rightLightOn && (animatronics.red.location === 7 || animatronics.yellow?.location === 7) && (
+                        <AnimatronicAtDoor type={animatronics.yellow?.location === 7 ? 'yellow' : 'red'} />
+                    )}
                     {/* Buttons */}
                     <div className="z-30 flex flex-col gap-6 bg-slate-800 p-3 rounded-xl border border-slate-700 shadow-2xl scale-75 md:scale-110">
                         <button

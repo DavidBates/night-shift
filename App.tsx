@@ -5,7 +5,7 @@ import { HOUR_DURATION_MS, getAggression, DEFAULT_SETTINGS } from './constants';
 import { StaticOverlay } from './components/StaticOverlay';
 import { Office } from './components/Office';
 import { CameraSystem } from './components/CameraSystem';
-import { StartScreen, CustomSetupScreen, NightIntro, Jumpscare, WinScreen, EndingScreen } from './components/Screens';
+import { StartScreen, CustomSetupScreen, NightIntro, Jumpscare, WinScreen, EndingScreen, KeypadScreen } from './components/Screens';
 
 // Google Analytics helper function
 // Declare gtag function type for TypeScript
@@ -55,7 +55,8 @@ const NightShift = () => {
         time: 0,
         animatronics: {
             blue: { location: 0, path: [0, 1, 3, 5, 7], name: "Unit-01" },
-            red: { location: 0, path: [0, 2, 4, 6, 7], name: "Unit-02" }
+            red: { location: 0, path: [0, 2, 4, 6, 7], name: "Unit-02" },
+            yellow: { location: 0, path: [0, 3, 4, 2, 7], name: "Unit-03" }
         }
     });
 
@@ -75,7 +76,8 @@ const NightShift = () => {
     // Enemy State
     const [animatronics, setAnimatronics] = useState<AnimatronicsState>({
         blue: { location: 0, path: [0, 1, 3, 5, 7], name: "Unit-01" },
-        red: { location: 0, path: [0, 2, 4, 6, 7], name: "Unit-02" }
+        red: { location: 0, path: [0, 2, 4, 6, 7], name: "Unit-02" },
+        yellow: { location: 0, path: [0, 3, 4, 2, 7], name: "Unit-03" }
     });
 
     const [jumpscareSource, setJumpscareSource] = useState<AnimatronicName | null>(null);
@@ -85,6 +87,7 @@ const NightShift = () => {
     const ambienceNodeRef = useRef<{ stop: () => void } | null>(null);
     const droneNodeRef = useRef<{ setIntensity: (t: number) => void; stop: () => void } | null>(null);
     const staticNodeRef = useRef<{ stop: () => void } | null>(null);
+    const nightmareBGMRef = useRef<HTMLAudioElement | null>(null);
 
     // --- AUDIO ENGINE ---
 
@@ -310,7 +313,38 @@ const NightShift = () => {
         }
     }, [time, view]);
 
-    // --- Actions ---
+    // --- Action/Effect Logic ---
+
+    // Handle Nightmare BGM based on state
+    useEffect(() => {
+        if (!nightmareBGMRef.current) {
+            const audio = new Audio('./media/nightmare_mode_background.mp3');
+            audio.loop = true;
+            audio.volume = 0.3; // keep it subtle
+            nightmareBGMRef.current = audio;
+        }
+
+        const bgm = nightmareBGMRef.current;
+
+        // Play BGM only if Nightmare Mode is active AND we are NOT in the game or win/ending screens
+        // so it plays in menus, custom setup, etc.
+        const shouldPlayBGM = gameSettings.isNightmareMode &&
+            (view === 'custom_setup' || view === 'start' || view === 'night_intro' || view === 'keypad');
+
+        if (shouldPlayBGM) {
+            bgm.play().catch(e => console.error("BGM play failed:", e));
+        } else {
+            bgm.pause();
+            if (view === 'start' && !gameSettings.isNightmareMode) {
+                bgm.currentTime = 0; // reset if completely disabled
+            }
+        }
+
+        return () => {
+            // Cleanup on unmount
+            // bgm.pause();
+        };
+    }, [gameSettings.isNightmareMode, view]);
 
     const startGame = (settings: GameSettings) => {
         setGameSettings(settings);
@@ -327,9 +361,10 @@ const NightShift = () => {
         toggleAmbience(true);
 
         // Reset Animatronics
-        const initialAnimatronics = {
+        const initialAnimatronics: AnimatronicsState = {
             blue: { location: 0, path: [0, 1, 3, 5, 7], name: "Unit-01" },
-            red: { location: 0, path: [0, 2, 4, 6, 7], name: "Unit-02" }
+            red: { location: 0, path: [0, 2, 4, 6, 7], name: "Unit-02" },
+            yellow: { location: 0, path: [0, 3, 4, 2, 7], name: "Unit-03" }
         };
         setAnimatronics(initialAnimatronics);
         gameStateRef.current.animatronics = initialAnimatronics;
@@ -337,12 +372,14 @@ const NightShift = () => {
 
     const startNightSequence = (nightNum: number) => {
         // Configure default settings for standard nights
-        const aggression = getAggression(nightNum);
+        const aggression = getAggression(nightNum, gameSettings.isNightmareMode);
         const settings: GameSettings = {
             ...DEFAULT_SETTINGS,
             night: nightNum,
             blueAI: aggression.blue,
             redAI: aggression.red,
+            yellowAI: aggression.yellow,
+            isNightmareMode: gameSettings.isNightmareMode
         };
 
         initAudio();
@@ -357,10 +394,23 @@ const NightShift = () => {
 
     const startCustomNight = (settings: GameSettings) => {
         initAudio();
-        setGameSettings(settings);
+        // If nightmare mode, override and start at Night 1
+        let finalSettings = { ...settings };
+        if (settings.isNightmareMode) {
+            const aggression = getAggression(1, true);
+            finalSettings = {
+                ...settings,
+                night: 1,
+                blueAI: aggression.blue,
+                redAI: aggression.red,
+                yellowAI: aggression.yellow,
+            };
+        }
+
+        setGameSettings(finalSettings);
         setView('night_intro');
         setTimeout(() => {
-            startGame(settings);
+            startGame(finalSettings);
         }, 4000);
     };
 
@@ -379,7 +429,9 @@ const NightShift = () => {
             night: gameSettings.night,
             night_type: gameSettings.night === 6 ? 'custom' : 'standard',
         });
-        if (gameSettings.night < 5) {
+        if (gameSettings.night === 6 && gameSettings.isNightmareMode) {
+            setView('keypad');
+        } else if (gameSettings.night < 5 || (gameSettings.isNightmareMode && gameSettings.night < 7)) {
             setView('win');
         } else {
             setView('ending');
@@ -388,6 +440,10 @@ const NightShift = () => {
 
     const continueGame = () => {
         startNightSequence(gameSettings.night + 1);
+    };
+
+    const handleKeypadSuccess = () => {
+        startNightSequence(7);
     };
 
     const toggleDoor = (side: 'left' | 'right') => {
@@ -441,9 +497,15 @@ const NightShift = () => {
                 };
                 let moved = false;
 
-                (['blue', 'red'] as AnimatronicName[]).forEach(key => {
+                (['blue', 'red', 'yellow'] as AnimatronicName[]).forEach(key => {
                     const enemy = next[key];
-                    const aiLevel = key === 'blue' ? blueAI : redAI;
+                    let aiLevel = 0;
+                    if (key === 'blue') aiLevel = blueAI;
+                    else if (key === 'red') aiLevel = redAI;
+                    else if (key === 'yellow') aiLevel = gameSettings.yellowAI;
+
+                    // Skip if AI is 0 (like yellow on nights 1-6)
+                    if (aiLevel <= 0) return;
 
                     // Roll for movement (1-20 scale)
                     const roll = Math.floor(Math.random() * 20) + 1;
@@ -455,7 +517,8 @@ const NightShift = () => {
 
                         if (enemy.location === 7) {
                             // AT DOOR - ATTACK LOGIC
-                            const blocked = key === 'blue' ? state.leftDoorClosed : state.rightDoorClosed;
+                            // Blue attacks left door, Red attacks right door. Yellow attacks both (needs both closed? No, let's say Yellow attacks left door for now, or alternate. Actually, let's make Yellow attack from the right door).
+                            const blocked = (key === 'blue' || (key === 'yellow' && Math.random() > 0.5)) ? state.leftDoorClosed : state.rightDoorClosed;
 
                             if (!blocked) {
                                 // NOT BLOCKED -> JUMPSCARE
@@ -595,6 +658,10 @@ const NightShift = () => {
 
     if (view === 'win') {
         return <WinScreen night={gameSettings.night} onNextNight={continueGame} onMenu={returnToTitle} />;
+    }
+
+    if (view === 'keypad') {
+        return <KeypadScreen onSuccess={handleKeypadSuccess} />;
     }
 
     if (view === 'ending') {
