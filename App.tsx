@@ -27,6 +27,7 @@ const NightShift = () => {
     const [view, setView] = useState<ViewType>('start');
     const [gameSettings, setGameSettings] = useState<GameSettings>(DEFAULT_SETTINGS);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+    const [previewNightmare, setPreviewNightmare] = useState(false);
 
     // Simulation State
     const [time, setTime] = useState(0); // 0 = 12AM, 6 = 6AM
@@ -320,24 +321,24 @@ const NightShift = () => {
         if (!nightmareBGMRef.current) {
             const audio = new Audio('./media/nightmare_mode_background.mp3');
             audio.loop = true;
-            audio.volume = 0.3; // keep it subtle
+            audio.volume = 0.8; // keep it subtle
             nightmareBGMRef.current = audio;
         }
 
         const bgm = nightmareBGMRef.current;
 
-        // Play BGM only if Nightmare Mode is active AND we are NOT in the game or win/ending screens
-        // so it plays in menus, custom setup, etc.
-        const shouldPlayBGM = gameSettings.isNightmareMode &&
-            (view === 'custom_setup' || view === 'start' || view === 'night_intro' || view === 'keypad');
+        // Play BGM if Nightmare Mode is active. The user wants it to persist through the game.
+        // It should start as soon as it's toggled, and play through everything.
+        // We'll stop it only if Nightmare mode gets turned off or we return to the start screen.
+        const isActive = gameSettings.isNightmareMode || previewNightmare;
+        const isMainMenu = view === 'start';
+        const shouldPlayBGM = isActive && !isMainMenu;
 
         if (shouldPlayBGM) {
             bgm.play().catch(e => console.error("BGM play failed:", e));
         } else {
             bgm.pause();
-            if (view === 'start' && !gameSettings.isNightmareMode) {
-                bgm.currentTime = 0; // reset if completely disabled
-            }
+            bgm.currentTime = 0; // reset if disabled or at menu
         }
 
         return () => {
@@ -419,6 +420,7 @@ const NightShift = () => {
         setIsSettingsOpen(false);
         toggleAmbience(false);
         toggleStaticSound(false);
+        setPreviewNightmare(false);
     };
 
     const handleWin = () => {
@@ -645,7 +647,7 @@ const NightShift = () => {
     }
 
     if (view === 'custom_setup') {
-        return <CustomSetupScreen onStart={startCustomNight} onBack={() => setView('start')} />;
+        return <CustomSetupScreen onStart={startCustomNight} onBack={returnToTitle} onNightmareToggle={setPreviewNightmare} />;
     }
 
     if (view === 'night_intro') {
