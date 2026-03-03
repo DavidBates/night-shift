@@ -40,7 +40,7 @@ interface Enemy {
     x: number;
     y: number;
     hp: number;
-    color: number; // ABGR format representation
+    color: number; // For fallback
     state: 'wander' | 'follow';
     targetX?: number;
     targetY?: number;
@@ -50,11 +50,21 @@ interface BattleModeProps {
     onExit: () => void;
 }
 
+// Off-screen canvas for sprite texture extraction
+let spriteImage: HTMLImageElement | null = null;
+let spritePixels: Uint32Array | null = null;
+const SPRITE_SIZE = 64; // assuming 64x64 sprites for simple extraction
+
 export const BattleMode: React.FC<BattleModeProps> = ({ onExit }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const bgmRef = useRef<HTMLAudioElement | null>(null);
     const [isFiring, setIsFiring] = useState(false);
     const [joystickPos, setJoystickPos] = useState({ x: 0, y: 0 });
+    const [playerHp, setPlayerHp] = useState(100);
+    const [damageFlash, setDamageFlash] = useState(false);
+
+    // Track last time player took damage for i-frames
+    const lastDamageTimeRef = useRef(0);
 
     // Player state refs (to avoid stale closures in animation loop)
     const playerRef = useRef({
@@ -93,6 +103,23 @@ export const BattleMode: React.FC<BattleModeProps> = ({ onExit }) => {
 
         const bgm = bgmRef.current;
         bgm.play().catch(e => console.error("BGM play failed:", e));
+
+        // Load Sprite Image
+        if (!spriteImage) {
+            spriteImage = new Image();
+            spriteImage.src = './media/battle/enemy_sprite.png'; // Assume this is where the user puts the sprite sheet
+            spriteImage.onload = () => {
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = SPRITE_SIZE;
+                tempCanvas.height = SPRITE_SIZE;
+                const tempCtx = tempCanvas.getContext('2d');
+                if (tempCtx && spriteImage) {
+                    tempCtx.drawImage(spriteImage, 0, 0, SPRITE_SIZE, SPRITE_SIZE); // Just grab the first frame for now
+                    const imgData = tempCtx.getImageData(0, 0, SPRITE_SIZE, SPRITE_SIZE);
+                    spritePixels = new Uint32Array(imgData.data.buffer);
+                }
+            };
+        }
 
         return () => {
             bgm.pause();
@@ -298,6 +325,21 @@ export const BattleMode: React.FC<BattleModeProps> = ({ onExit }) => {
                     const moveY = enemy.y + (dy / dist) * speed;
                     if (worldMap[Math.floor(moveX)][Math.floor(enemy.y)] === 0) enemy.x = moveX;
                     if (worldMap[Math.floor(enemy.x)][Math.floor(moveY)] === 0) enemy.y = moveY;
+
+                    // Damage Player
+                    if (dist < 1.0) {
+                        const now = Date.now();
+                        if (now - lastDamageTimeRef.current > 1000) { // 1 sec i-frames
+                            lastDamageTimeRef.current = now;
+                            setPlayerHp(prev => {
+                                const newHp = Math.max(0, prev - 25);
+                                if (newHp <= 0) setTimeout(onExit, 500); // Kick out if die
+                                return newHp;
+                            });
+                            setDamageFlash(true);
+                            setTimeout(() => setDamageFlash(false), 200);
+                        }
+                    }
                 } else {
                     if (Math.random() < 0.02 || !enemy.targetX) {
                         enemy.targetX = enemy.x + (Math.random() - 0.5) * 4;
@@ -345,6 +387,8 @@ export const BattleMode: React.FC<BattleModeProps> = ({ onExit }) => {
                 let drawEndX = Math.min(SCREEN_WIDTH - 1, Math.floor(spriteWidth / 2 + spriteScreenX));
 
                 for (let stripe = drawStartX; stripe < drawEndX; stripe++) {
+                    const texX = Math.floor(256 * (stripe - (-spriteWidth / 2 + spriteScreenX)) * SPRITE_SIZE / spriteWidth) / 256;
+
                     if (transformY > 0 && stripe > 0 && stripe < SCREEN_WIDTH && transformY < zBuffer[stripe]) {
 
                         if (stripe === Math.floor(SCREEN_WIDTH / 2)) {
@@ -352,7 +396,22 @@ export const BattleMode: React.FC<BattleModeProps> = ({ onExit }) => {
                         }
 
                         for (let y = drawStartY; y < drawEndY; y++) {
-                            buf[y * SCREEN_WIDTH + stripe] = sprite.color;
+                            const d = (y) * 256 - SCREEN_HEIGHT * 128 + spriteHeight * 128; // 256 and 128 factors to avoid floats
+                            const texY = ((d * SPRITE_SIZE) / spriteHeight) / 256;
+
+                            // Sample from sprite pixels if loaded, else fallback to color
+                            let writeColor = sprite.color;
+                            if (spritePixels && sprite.color !== 0xFFFFFFFF) {
+                                // if flashing white, ignore texture temporarily
+                                const pixel = spritePixels[Math.floor(texY) * SPRITE_SIZE + Math.floor(texX)];
+                                // Check alpha
+                                if ((pixel & 0xFF000000) !== 0) {
+                                    writeColor = pixel;
+                                    buf[y * SCREEN_WIDTH + stripe] = writeColor;
+                                }
+                            } else {
+                                buf[y * SCREEN_WIDTH + stripe] = writeColor;
+                            }
                         }
                     }
                 }
@@ -385,6 +444,12 @@ export const BattleMode: React.FC<BattleModeProps> = ({ onExit }) => {
                 ctx.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
             }
 
+            // Damage flash overlay
+            if (damageFlash) {
+                ctx.fillStyle = 'rgba(255, 0, 0, 0.4)';
+                ctx.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+            }
+
             animationFrameId = requestAnimationFrame(gameLoop);
         };
 
@@ -393,7 +458,7 @@ export const BattleMode: React.FC<BattleModeProps> = ({ onExit }) => {
         return () => {
             cancelAnimationFrame(animationFrameId);
         };
-    }, [isFiring]);
+    }, [isFiring, damageFlash]);
 
     // Mobile Controls Handlers
     const handleJoystickStart = (e: React.TouchEvent | React.MouseEvent) => {
@@ -473,8 +538,8 @@ export const BattleMode: React.FC<BattleModeProps> = ({ onExit }) => {
             <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle,transparent_50%,rgba(0,0,0,0.8)_100%)]"></div>
 
             {/* Top UI */}
-            <div className="absolute top-4 left-4 right-4 flex justify-between z-10 pointer-events-none text-red-500">
-                <div className="text-2xl font-bold tracking-widest bg-black/50 px-3 py-1 border border-red-900">HEALTH: 100%</div>
+            <div className={`absolute top-4 left-4 right-4 flex justify-between z-10 pointer-events-none ${playerHp < 50 ? 'text-red-500 animate-pulse' : 'text-green-500'}`}>
+                <div className="text-2xl font-bold tracking-widest bg-black/50 px-3 py-1 border border-zinc-900">HEALTH: {playerHp}%</div>
                 <button
                     onClick={onExit}
                     className="pointer-events-auto bg-black/50 border border-red-500 px-4 py-2 hover:bg-red-900/50 transition-colors text-white font-bold"
