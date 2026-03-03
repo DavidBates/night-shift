@@ -1,4 +1,4 @@
-export type ViewType = 'start' | 'custom_setup' | 'night_intro' | 'game' | 'jumpscare' | 'win' | 'gameover' | 'ending' | 'keypad';
+export type ViewType = 'start' | 'custom_setup' | 'night_intro' | 'game' | 'jumpscare' | 'win' | 'gameover' | 'ending' | 'keypad' | 'battle_mode';
 
 export type AnimatronicName = 'blue' | 'red' | 'yellow';
 

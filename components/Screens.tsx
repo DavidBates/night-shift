@@ -7,7 +7,8 @@ import { ArrowLeft, Play, Settings } from 'lucide-react';
 export const StartScreen: React.FC<{
     onStart: (night: number) => void;
     onCustom: () => void;
-}> = ({ onStart, onCustom }) => (
+    onBattleMode: () => void;
+}> = ({ onStart, onCustom, onBattleMode }) => (
     <div className="h-screen w-full bg-black flex flex-col items-center justify-center relative overflow-hidden font-mono text-slate-200">
         <StaticOverlay />
         <div className="z-10 text-center space-y-6 animate-in fade-in duration-1000">
@@ -27,6 +28,15 @@ export const StartScreen: React.FC<{
                     className="px-8 py-3 border border-yellow-900 text-yellow-500 hover:bg-yellow-950/30 hover:border-yellow-600 hover:text-yellow-400 transition-all text-lg flex items-center justify-center gap-2"
                 >
                     <Settings size={18} /> CUSTOM NIGHT
+                </button>
+            </div>
+
+            <div className="mt-8">
+                <button
+                    onClick={onBattleMode}
+                    className="px-10 py-4 bg-red-900 border-2 border-red-500 text-white font-bold hover:bg-red-800 hover:border-red-400 hover:shadow-[0_0_20px_red] transition-all text-2xl tracking-widest animate-pulse"
+                >
+                    BATTLE MODE
                 </button>
             </div>
         </div>

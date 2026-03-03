@@ -6,6 +6,7 @@ import { StaticOverlay } from './components/StaticOverlay';
 import { Office } from './components/Office';
 import { CameraSystem } from './components/CameraSystem';
 import { StartScreen, CustomSetupScreen, NightIntro, Jumpscare, WinScreen, EndingScreen, KeypadScreen } from './components/Screens';
+import { BattleMode } from './components/BattleMode';
 
 // Google Analytics helper function
 // Declare gtag function type for TypeScript
@@ -643,7 +644,7 @@ const NightShift = () => {
     // --- Main Views ---
 
     if (view === 'start') {
-        return <StartScreen onStart={startNightSequence} onCustom={() => setView('custom_setup')} />;
+        return <StartScreen onStart={startNightSequence} onCustom={() => setView('custom_setup')} onBattleMode={() => setView('battle_mode')} />;
     }
 
     if (view === 'custom_setup') {
@@ -668,6 +669,10 @@ const NightShift = () => {
 
     if (view === 'ending') {
         return <EndingScreen onReturn={returnToTitle} />;
+    }
+
+    if (view === 'battle_mode') {
+        return <BattleMode onExit={returnToTitle} />;
     }
 
     // --- GAME UI ---
