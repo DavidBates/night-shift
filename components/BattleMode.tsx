@@ -35,6 +35,8 @@ const worldMap: number[][] = [
 const SCREEN_WIDTH = 640;
 const SCREEN_HEIGHT = 480;
 
+type Weapon = 'shotgun' | 'pistol' | 'rpg';
+
 interface Enemy {
     id: number;
     x: number;
@@ -62,6 +64,19 @@ export const BattleMode: React.FC<BattleModeProps> = ({ onExit }) => {
     const [joystickPos, setJoystickPos] = useState({ x: 0, y: 0 });
     const [playerHp, setPlayerHp] = useState(100);
     const [damageFlash, setDamageFlash] = useState(false);
+    
+    const [currentWeapon, setCurrentWeapon] = useState<Weapon>('shotgun');
+    const [showArmory, setShowArmory] = useState(false);
+    const currentWeaponRef = useRef<Weapon>('shotgun');
+    const showArmoryRef = useRef(false);
+
+    useEffect(() => {
+        currentWeaponRef.current = currentWeapon;
+    }, [currentWeapon]);
+
+    useEffect(() => {
+        showArmoryRef.current = showArmory;
+    }, [showArmory]);
 
     // Track last time player took damage for i-frames
     const lastDamageTimeRef = useRef(0);
@@ -130,11 +145,12 @@ export const BattleMode: React.FC<BattleModeProps> = ({ onExit }) => {
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             keys.current[e.code] = true;
-            if (e.code === 'Space' && !isFiring) {
+            if (e.code === 'Space' && !isFiring && !showArmoryRef.current) {
                 setIsFiring(true);
                 justFiredRef.current = true;
-                playGunShot();
-                setTimeout(() => setIsFiring(false), 100);
+                playGunShot(currentWeaponRef.current);
+                const cooldown = currentWeaponRef.current === 'pistol' ? 200 : currentWeaponRef.current === 'rpg' ? 1500 : 600;
+                setTimeout(() => setIsFiring(false), cooldown);
             }
         };
         const handleKeyUp = (e: KeyboardEvent) => {
@@ -168,11 +184,12 @@ export const BattleMode: React.FC<BattleModeProps> = ({ onExit }) => {
             // 1. INPUT HANDLING
             const p = playerRef.current;
 
-            // Combine keyboard and mobile inputs
-            let moveForward = keys.current['KeyW'] || keys.current['ArrowUp'] ? 1 : 0;
-            let moveBackward = keys.current['KeyS'] || keys.current['ArrowDown'] ? 1 : 0;
-            let rotateLeft = keys.current['KeyA'] || keys.current['ArrowLeft'] ? 1 : 0;
-            let rotateRight = keys.current['KeyD'] || keys.current['ArrowRight'] ? 1 : 0;
+            if (!showArmoryRef.current) {
+                // Combine keyboard and mobile inputs
+                let moveForward = keys.current['KeyW'] || keys.current['ArrowUp'] ? 1 : 0;
+                let moveBackward = keys.current['KeyS'] || keys.current['ArrowDown'] ? 1 : 0;
+                let rotateLeft = keys.current['KeyA'] || keys.current['ArrowLeft'] ? 1 : 0;
+                let rotateRight = keys.current['KeyD'] || keys.current['ArrowRight'] ? 1 : 0;
 
             // Joystick overrides
             if (joystickRef.current.active) {
@@ -208,6 +225,7 @@ export const BattleMode: React.FC<BattleModeProps> = ({ onExit }) => {
                 const oldPlaneX = p.planeX;
                 p.planeX = p.planeX * Math.cos(p.rotSpeed) - p.planeY * Math.sin(p.rotSpeed);
                 p.planeY = oldPlaneX * Math.sin(p.rotSpeed) + p.planeY * Math.cos(p.rotSpeed);
+            }
             }
 
             // 2. RAYCASTING
@@ -309,8 +327,9 @@ export const BattleMode: React.FC<BattleModeProps> = ({ onExit }) => {
             const enemies = enemiesRef.current;
 
             // AI Tick
-            enemies.forEach(enemy => {
-                if (enemy.hp <= 0) return;
+            if (!showArmoryRef.current) {
+                enemies.forEach(enemy => {
+                    if (enemy.hp <= 0) return;
 
                 const dx = p.posX - enemy.x;
                 const dy = p.posY - enemy.y;
@@ -345,19 +364,20 @@ export const BattleMode: React.FC<BattleModeProps> = ({ onExit }) => {
                         enemy.targetX = enemy.x + (Math.random() - 0.5) * 4;
                         enemy.targetY = enemy.y + (Math.random() - 0.5) * 4;
                     }
-                    if (enemy.targetX !== undefined && enemy.targetY !== undefined) {
-                        const tdx = enemy.targetX - enemy.x;
-                        const tdy = enemy.targetY - enemy.y;
-                        const tdist = Math.sqrt(tdx * tdx + tdy * tdy);
-                        if (tdist > 0.1) {
-                            const moveX = enemy.x + (tdx / tdist) * speed * 0.5;
-                            const moveY = enemy.y + (tdy / tdist) * speed * 0.5;
-                            if (worldMap[Math.floor(moveX)][Math.floor(enemy.y)] === 0) enemy.x = moveX;
-                            if (worldMap[Math.floor(enemy.x)][Math.floor(moveY)] === 0) enemy.y = moveY;
+                        if (enemy.targetX !== undefined && enemy.targetY !== undefined) {
+                            const tdx = enemy.targetX - enemy.x;
+                            const tdy = enemy.targetY - enemy.y;
+                            const tdist = Math.sqrt(tdx * tdx + tdy * tdy);
+                            if (tdist > 0.1) {
+                                const moveX = enemy.x + (tdx / tdist) * speed * 0.5;
+                                const moveY = enemy.y + (tdy / tdist) * speed * 0.5;
+                                if (worldMap[Math.floor(moveX)][Math.floor(enemy.y)] === 0) enemy.x = moveX;
+                                if (worldMap[Math.floor(enemy.x)][Math.floor(moveY)] === 0) enemy.y = moveY;
+                            }
                         }
                     }
-                }
-            });
+                });
+            }
 
             const sortedEnemies = [...enemies]
                 .filter(e => e.hp > 0)
@@ -418,10 +438,13 @@ export const BattleMode: React.FC<BattleModeProps> = ({ onExit }) => {
             }
 
             if (justFiredRef.current) {
+                const weapon = currentWeaponRef.current;
+                
                 if (targetInCrosshair !== null) {
                     const target = enemies.find(e => e.id === targetInCrosshair);
                     if (target) {
-                        target.hp -= 1;
+                        const dmg = weapon === 'rpg' ? 4 : weapon === 'pistol' ? 1 : 2;
+                        target.hp -= dmg;
                         if (target.hp > 0) {
                             // Hit flash feedback (make them white briefly)
                             const initialColor = target.color;
@@ -431,6 +454,32 @@ export const BattleMode: React.FC<BattleModeProps> = ({ onExit }) => {
                             }, 100);
                         }
                     }
+                }
+                
+                if (weapon === 'rpg') {
+                    // Splash damage
+                    const centerDist = zBuffer[Math.floor(SCREEN_WIDTH / 2)];
+                    let impactX, impactY;
+                    if (targetInCrosshair !== null) {
+                        const target = enemies.find(e => e.id === targetInCrosshair);
+                        impactX = target ? target.x : p.posX + p.dirX * centerDist;
+                        impactY = target ? target.y : p.posY + p.dirY * centerDist;
+                    } else {
+                        impactX = p.posX + p.dirX * centerDist;
+                        impactY = p.posY + p.dirY * centerDist;
+                    }
+                    
+                    enemies.forEach(e => {
+                        if (e.id !== targetInCrosshair && e.hp > 0) {
+                            const dist = Math.sqrt((e.x - impactX)**2 + (e.y - impactY)**2);
+                            if (dist < 4) {
+                                e.hp -= 2;
+                                const initialColor = e.color;
+                                e.color = 0xFFFFFFFF;
+                                setTimeout(() => { e.color = initialColor; }, 100);
+                            }
+                        }
+                    });
                 }
                 justFiredRef.current = false;
             }
@@ -507,18 +556,23 @@ export const BattleMode: React.FC<BattleModeProps> = ({ onExit }) => {
         setJoystickPos({ x: dx, y: dy });
     };
 
-    const playGunShot = () => {
-        const shot = new Audio('./media/battle/gun_blast.mp3');
+    const playGunShot = (weapon: Weapon) => {
+        let soundFile = './media/battle/gun_blast.mp3';
+        if (weapon === 'pistol') soundFile = './media/battle/gun_blast_pistol.mp3';
+        else if (weapon === 'rpg') soundFile = './media/battle/gun_blast_rpg.mp3';
+        
+        const shot = new Audio(soundFile);
         shot.volume = 0.6;
         shot.play().catch(e => console.error("Shot audio failed:", e));
     };
 
     const handleFire = () => {
-        if (!isFiring) {
+        if (!isFiring && !showArmoryRef.current) {
             setIsFiring(true);
             justFiredRef.current = true;
-            playGunShot();
-            setTimeout(() => setIsFiring(false), 100);
+            playGunShot(currentWeaponRef.current);
+            const cooldown = currentWeaponRef.current === 'pistol' ? 200 : currentWeaponRef.current === 'rpg' ? 1500 : 600;
+            setTimeout(() => setIsFiring(false), cooldown);
         }
     };
 
@@ -540,23 +594,43 @@ export const BattleMode: React.FC<BattleModeProps> = ({ onExit }) => {
             {/* Top UI */}
             <div className={`absolute top-4 left-4 right-4 flex justify-between z-10 pointer-events-none ${playerHp < 50 ? 'text-red-500 animate-pulse' : 'text-green-500'}`}>
                 <div className="text-2xl font-bold tracking-widest bg-black/50 px-3 py-1 border border-zinc-900">HEALTH: {playerHp}%</div>
-                <button
-                    onClick={onExit}
-                    className="pointer-events-auto bg-black/50 border border-red-500 px-4 py-2 hover:bg-red-900/50 transition-colors text-white font-bold"
-                >
-                    ABORT MISSION
-                </button>
+                <div className="flex gap-4">
+                    <button
+                        onClick={() => setShowArmory(true)}
+                        className="pointer-events-auto bg-black/50 border border-green-500 px-4 py-2 hover:bg-green-900/50 transition-colors text-white font-bold"
+                    >
+                        ARMORY
+                    </button>
+                    <button
+                        onClick={onExit}
+                        className="pointer-events-auto bg-black/50 border border-red-500 px-4 py-2 hover:bg-red-900/50 transition-colors text-white font-bold"
+                    >
+                        ABORT MISSION
+                    </button>
+                </div>
             </div>
 
             {/* Weapon UI Overlay */}
             <div className="absolute bottom-0 left-1/2 -translate-x-1/2 z-10 pointer-events-none flex flex-col items-center justify-end">
-                {/* Simple weapon drawn with CSS for now */}
-                <div className={`w-32 h-48 bg-zinc-800 border-l border-t border-zinc-600 border-r-8 border-zinc-900 flex justify-center pt-4 transition-transform ${isFiring ? 'translate-y-4' : ''}`}>
-                    <div className="w-8 h-full bg-black">
-                        {/* Gun Barrel details */}
-                        <div className="w-full h-8 bg-zinc-600 mt-4 rounded-b-full"></div>
+                {currentWeapon === 'shotgun' && (
+                    <div className={`w-32 h-48 bg-zinc-800 border-l border-t border-zinc-600 border-r-8 border-zinc-900 flex justify-center pt-4 transition-transform ${isFiring ? 'translate-y-4' : ''}`}>
+                        <div className="w-8 h-full bg-black">
+                            {/* Gun Barrel details */}
+                            <div className="w-full h-8 bg-zinc-600 mt-4 rounded-b-full"></div>
+                        </div>
                     </div>
-                </div>
+                )}
+                {currentWeapon === 'pistol' && (
+                    <div className={`w-16 h-32 bg-gray-700 border-l border-t border-gray-500 border-r-4 border-gray-900 flex justify-center pt-2 transition-transform ${isFiring ? 'translate-y-2' : ''} -rotate-3`}>
+                        <div className="w-4 h-full bg-black"></div>
+                    </div>
+                )}
+                {currentWeapon === 'rpg' && (
+                    <div className={`w-40 h-56 bg-green-900 border-l border-t border-green-700 border-r-8 border-green-950 flex flex-col items-center pt-0 transition-transform ${isFiring ? 'translate-y-8' : ''}`}>
+                         <div className="w-full h-12 bg-black rounded-b-xl border-b-4 border-green-800 mb-4"></div>
+                         <div className="w-16 h-full bg-black"></div>
+                    </div>
+                )}
             </div>
 
             {/* Mobile Controls Overlay */}
@@ -587,6 +661,53 @@ export const BattleMode: React.FC<BattleModeProps> = ({ onExit }) => {
                     FIRE
                 </button>
             </div>
+
+            {/* Armory Modal Overlay */}
+            {showArmory && (
+                <div className="absolute inset-0 z-50 bg-black/80 flex items-center justify-center p-8 backdrop-blur-sm pointer-events-auto">
+                    <div className="bg-zinc-900 border-2 border-green-500 p-8 w-full max-w-2xl text-green-500 flex flex-col gap-8 shadow-[0_0_30px_rgba(34,197,94,0.3)]">
+                        <div className="text-center">
+                            <h2 className="text-4xl font-bold tracking-widest mb-2">ARMORY</h2>
+                            <p className="text-green-400/70">SELECT YOUR WEAPON</p>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            {[
+                                { id: 'shotgun', name: 'SHOTGUN', desc: 'Standard issue. Moderate damage, moderate rate.', dmg: '2', speed: 'Mod' },
+                                { id: 'pistol', name: 'PISTOL', desc: 'Sidearm. Low damage, high fire rate.', dmg: '1', speed: 'Fast' },
+                                { id: 'rpg', name: 'RPG', desc: 'Heavy ordnance. High explosion damage, low rate.', dmg: '4 (Splash)', speed: 'Slow' },
+                            ].map(w => (
+                                <button
+                                    key={w.id}
+                                    onClick={() => {
+                                        setCurrentWeapon(w.id as Weapon);
+                                        setShowArmory(false);
+                                    }}
+                                    className={`flex flex-col border-2 p-4 text-left transition-all ${
+                                        currentWeapon === w.id 
+                                            ? 'border-white bg-green-900/30 shadow-[0_0_15px_rgba(255,255,255,0.2)]' 
+                                            : 'border-green-800 hover:border-green-400 hover:bg-green-900/10'
+                                    }`}
+                                >
+                                    <h3 className="text-xl font-bold mb-2 text-white">{w.name}</h3>
+                                    <p className="text-sm text-green-400/80 mb-4 flex-1">{w.desc}</p>
+                                    <div className="text-xs bg-black/50 p-2 w-full flex justify-between">
+                                        <span>DMG: {w.dmg}</span>
+                                        <span>SPD: {w.speed}</span>
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+
+                        <button 
+                            onClick={() => setShowArmory(false)}
+                            className="mt-4 border border-green-500 py-3 hover:bg-green-500 hover:text-black transition-colors font-bold tracking-widest"
+                        >
+                            CLOSE ARMORY
+                        </button>
+                    </div>
+                </div>
+            )}
 
         </div>
     );
